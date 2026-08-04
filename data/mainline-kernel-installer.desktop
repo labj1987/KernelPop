@@ -7,4 +7,5 @@ Terminal=false
 Type=Application
 Categories=System;Settings;
 Keywords=kernel;mainline;linux;initramfs;grub;
+StartupNotify=true
 StartupWMClass=mainline-kernel-installer

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.11 — Fix phantom taskbar entry at launch
+
+- The 1.0.7/1.0.9/1.0.10 fixes addressed real GTK-window-subclass dialogs
+  but the phantom dock icon persisted immediately at launch, before any
+  dialog could fire. Root cause: `mainline-kernel-installer.desktop` was
+  missing `StartupNotify=true`. Without it, GNOME Shell has no way to
+  associate the launch sequence with the eventual mapped window, so it
+  leaves an orphaned placeholder entry in the dock (generic icon, tooltip
+  showing only the raw `io.github.labj1987.MKI` app ID) alongside the
+  real, correctly-iconed window. NVI already had `StartupNotify=true` and
+  never exhibited this. Added the line to match.
+
 ## 1.0.10 — Fix phantom taskbar window from the About dialog
 
 - The About dialog used `gtk4::AboutDialog`, which — like the
