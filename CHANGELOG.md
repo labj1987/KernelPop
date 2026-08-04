@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.8 — Fix UPDATE_INFORMATION to reference .zsync sidecar
+
+- Per the AppImage update spec, the GitHub Releases zsync transport string
+  must end in the `.zsync` sidecar filename, not the AppImage filename.
+  `UPDATE_INFORMATION` in `build-appimage.sh` ended in
+  `-x86_64.AppImage` instead of `-x86_64.AppImage.zsync`, which broke
+  update detection in tools like Gear Lever even though the `.zsync`
+  sidecar itself was already being generated and published correctly.
+  Packaging-only fix, no application behavior changes.
+
 ## 1.0.7 — Fix phantom taskbar window on kernel removal
 
 - The "Remove kernel X?" confirmation used `libadwaita::MessageDialog`,
