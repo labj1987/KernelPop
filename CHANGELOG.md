@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.7 — Fix phantom taskbar window on kernel removal
+
+- The "Remove kernel X?" confirmation used `libadwaita::MessageDialog`,
+  which is deprecated (libadwaita 1.2+, replaced by `AlertDialog`) and is
+  itself a `Gtk.Window` subclass — a real separate top-level Wayland
+  surface. On GNOME/Wayland that surface doesn't inherit the app's
+  icon/app_id, so the compositor showed it in the dock as a second,
+  unnamed, generic-icon window alongside MKI's own. Switched to
+  `libadwaita::AlertDialog`, which is an `Adw.Dialog` and renders as a
+  floating sheet inside the parent window's own surface, so no second
+  top-level window is created. Requires the `v1_5` libadwaita feature.
+
 ## 1.0.6 — Generate .zsync directly with zsyncmake
 
 - The 1.0.5 diagnostics showed zsync is installed and zsyncmake is on

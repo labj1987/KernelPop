@@ -1,6 +1,6 @@
 [package]
 name = "mainline-kernel-installer"
-version = "1.0.6"
+version = "1.0.7"
 edition = "2021"
 description = "Mainline Kernel Installer — GTK4 GUI for Ubuntu mainline kernels"
 authors = ["Alex Brown"]
