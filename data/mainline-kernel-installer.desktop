@@ -8,4 +8,4 @@ Type=Application
 Categories=System;Settings;
 Keywords=kernel;mainline;linux;initramfs;grub;
 StartupNotify=true
-StartupWMClass=mainline-kernel-installer
+StartupWMClass=io.github.labj1987.MKI
