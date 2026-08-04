@@ -97,8 +97,9 @@ fi
 echo "==> Packing AppImage"
 OUT="$APP-$VERSION-$ARCH.AppImage"
 
-UPDATE_INFORMATION="gh-releases-zsync|labj1987|MKI|latest|mainline-kernel-installer-*-x86_64.AppImage.zsync" \
-VERSION="$VERSION" ARCH="$ARCH" "$TOOL" --appimage-extract-and-run "$APPDIR" "$OUT"
+UPDATE_INFORMATION="gh-releases-zsync|labj1987|MKI|latest|mainline-kernel-installer-*-x86_64.AppImage.zsync"
+VERSION="$VERSION" ARCH="$ARCH" "$TOOL" --appimage-extract-and-run \
+    -u "$UPDATE_INFORMATION" "$APPDIR" "$OUT"
 
 echo "==> Done: $OUT"
 ls -lh "$OUT"

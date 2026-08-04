@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.9 — Fix UPDATE_INFORMATION not being embedded at all
+
+- 1.0.8 corrected the `UPDATE_INFORMATION` string but the fix never took
+  effect: `build-appimage.sh` passed it to `appimagetool` as an
+  environment variable, and this appimagetool build (continuous, git
+  8c8c91f) silently ignores that env var — it only reads update info via
+  the `-u`/`--updateinformation` CLI flag. Confirmed by inspecting the
+  1.0.8 release AppImage's `.upd_info` ELF section: empty. This also
+  explains the zsyncmake "silent no-op" workaround from 1.0.6 — without
+  `-u`, appimagetool never attempts its own zsync generation either.
+  Switched to passing `-u "$UPDATE_INFORMATION"` as an argument.
+
 ## 1.0.8 — Fix UPDATE_INFORMATION to reference .zsync sidecar
 
 - Per the AppImage update spec, the GitHub Releases zsync transport string
