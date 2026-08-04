@@ -13,7 +13,7 @@ use gtk4::{
 };
 use libadwaita::prelude::*;
 use libadwaita::{
-    ActionRow, Application, ApplicationWindow, Banner, HeaderBar, MessageDialog,
+    ActionRow, AlertDialog, Application, ApplicationWindow, Banner, HeaderBar,
     PreferencesGroup, Toast, ToastOverlay,
 };
 
@@ -444,9 +444,7 @@ pub fn build_ui(app: &Application) {
                             let self_slot = self_slot.clone();
 
                             remove_btn.connect_clicked(move |_| {
-                                let dialog = MessageDialog::builder()
-                                    .transient_for(&window)
-                                    .modal(true)
+                                let dialog = AlertDialog::builder()
                                     .heading(&format!("Remove kernel {}?", ver))
                                     .body("Its packages will be purged and GRUB updated. The running kernel is never touched.")
                                     .build();
@@ -487,7 +485,7 @@ pub fn build_ui(app: &Application) {
                                         },
                                     );
                                 });
-                                dialog.present();
+                                dialog.present(Some(&window));
                             });
 
                             row.add_suffix(&remove_btn);
