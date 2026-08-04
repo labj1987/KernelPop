@@ -13,7 +13,7 @@ use gtk4::{
 };
 use libadwaita::prelude::*;
 use libadwaita::{
-    ActionRow, AlertDialog, Application, ApplicationWindow, Banner, HeaderBar,
+    AboutDialog, ActionRow, AlertDialog, Application, ApplicationWindow, Banner, HeaderBar,
     PreferencesGroup, Toast, ToastOverlay,
 };
 
@@ -889,17 +889,16 @@ pub fn build_ui(app: &Application) {
                 let s = state.borrow();
                 (s.sysinfo.running_kernel.clone(), s.sysinfo.kernels.len())
             };
-            let dialog = gtk4::AboutDialog::builder()
-                .program_name("Mainline Kernel Installer")
+            let dialog = AboutDialog::builder()
+                .application_name("Mainline Kernel Installer")
                 .version(env!("CARGO_PKG_VERSION"))
-                .authors(vec!["Linnard Alex Brown Jr.".to_string()])
-                .comments(&format!(
+                .developers(vec!["Linnard Alex Brown Jr."])
+                .comments(format!(
                     "GTK4 + Rust GUI for installing Ubuntu mainline kernels with a verified initramfs.\n\nRunning kernel: {}\nInstalled kernels: {}",
                     running, count
                 ))
                 .build();
-            dialog.set_transient_for(Some(&window));
-            dialog.present();
+            dialog.present(Some(&window));
         });
     }
 

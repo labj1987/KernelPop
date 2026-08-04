@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.10 — Fix phantom taskbar window from the About dialog
+
+- The About dialog used `gtk4::AboutDialog`, which — like the
+  `MessageDialog` fixed in 1.0.7 — is a `Gtk.Window` subclass and creates
+  a real separate top-level Wayland surface, showing as a second, unnamed
+  window in the dock. Switched to `libadwaita::AboutDialog` (`Adw.Dialog`
+  subclass, requires the `v1_5` feature, already enabled), which renders
+  as a sheet inside the main window's own surface.
+
 ## 1.0.9 — Fix UPDATE_INFORMATION not being embedded at all
 
 - 1.0.8 corrected the `UPDATE_INFORMATION` string but the fix never took
