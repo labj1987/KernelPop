@@ -97,9 +97,7 @@ fi
 echo "==> Packing AppImage"
 OUT="$APP-$VERSION-$ARCH.AppImage"
 
-# Repo field stays "MKI" until/unless the GitHub repo itself is renamed —
-# the update spec resolves releases through the repo name.
-UPDATE_INFORMATION="gh-releases-zsync|labj1987|MKI|latest|kernelpop-*-x86_64.AppImage.zsync"
+UPDATE_INFORMATION="gh-releases-zsync|labj1987|KernelPop|latest|kernelpop-*-x86_64.AppImage.zsync"
 VERSION="$VERSION" ARCH="$ARCH" "$TOOL" --appimage-extract-and-run \
     -u "$UPDATE_INFORMATION" "$APPDIR" "$OUT"
 
