@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.0 — Rebrand to KernelPop, new icon set
+
+MKI is now KernelPop. Full rename — crate/package name, application ID
+(`io.github.labj1987.KernelPop`), prgname, window title, About dialog,
+desktop file, appdata, polkit policy, install-script/log paths
+(`/usr/lib/kernelpop/`, `/var/log/kernelpop.log`), and the HTTP user
+agent. Pure rebrand, no behavior change.
+
+- Replaces the single 256px icon with the approved three-popcorn-kernel
+  design, rendered natively at 16/32/48/64/128/256/512px (not just
+  downscaled from one size) — bringing the icon set up to the same
+  multi-size convention GreenLight already has, for consistency between
+  apps. `build-appimage.sh`'s icon-copy lines now source from
+  `data/$APP-256.png` instead of `data/$APP.png` accordingly.
+- Adds a `.gitignore` — this repo never had one, which meant `target/`
+  came within one `git add -A` of being committed wholesale while
+  staging this change. `/target/`, `/build-appimage/`, and
+  `*.AppImage(.zsync)` are now excluded.
+
+The GitHub repo itself (`labj1987/MKI`) is intentionally left unrenamed
+for now — `build-appimage.sh`'s `UPDATE_INFORMATION` still points at MKI.
+
 ## 1.0.12 — Fix phantom taskbar entry: app_id/StartupWMClass mismatch
 
 - Root cause confirmed with `WAYLAND_DEBUG=1 <appimage> 2>&1 | grep
