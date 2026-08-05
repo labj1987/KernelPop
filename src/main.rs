@@ -26,11 +26,11 @@ fn main() {
     // the GApplication ID, not prgname; on X11 it's prgname. Setting both
     // prgname and StartupWMClass (in the .desktop file) to the application
     // ID makes the running window match the desktop file on either backend.
-    glib::set_prgname(Some("io.github.labj1987.MKI"));
-    glib::set_application_name("Mainline Kernel Installer");
+    glib::set_prgname(Some("io.github.labj1987.KernelPop"));
+    glib::set_application_name("KernelPop");
 
     let app = libadwaita::Application::builder()
-        .application_id("io.github.labj1987.MKI")
+        .application_id("io.github.labj1987.KernelPop")
         .flags(gio::ApplicationFlags::FLAGS_NONE)
         .build();
 

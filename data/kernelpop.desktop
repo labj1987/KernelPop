@@ -1,11 +1,11 @@
 [Desktop Entry]
-Name=Mainline Kernel Installer
+Name=KernelPop
 Comment=Install Ubuntu mainline kernels with a verified initramfs
-Exec=mainline-kernel-installer
-Icon=mainline-kernel-installer
+Exec=kernelpop
+Icon=kernelpop
 Terminal=false
 Type=Application
 Categories=System;Settings;
 Keywords=kernel;mainline;linux;initramfs;grub;
 StartupNotify=true
-StartupWMClass=io.github.labj1987.MKI
+StartupWMClass=io.github.labj1987.KernelPop

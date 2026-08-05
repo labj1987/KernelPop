@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.labj1987.MKI</id>
-  <name>Mainline Kernel Installer</name>
+  <id>io.github.labj1987.KernelPop</id>
+  <name>KernelPop</name>
   <summary>Install Ubuntu mainline kernels with a verified initramfs</summary>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
@@ -15,9 +15,9 @@
       unbootable kernel is visible before a reboot instead of after.
     </p>
   </description>
-  <launchable type="desktop-id">mainline-kernel-installer.desktop</launchable>
+  <launchable type="desktop-id">kernelpop.desktop</launchable>
   <provides>
-    <binary>mainline-kernel-installer</binary>
+    <binary>kernelpop</binary>
   </provides>
   <categories>
     <category>System</category>

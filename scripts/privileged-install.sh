@@ -21,9 +21,9 @@
 
 set -uo pipefail
 
-LOGFILE="/var/log/mainline-kernel-installer.log"
+LOGFILE="/var/log/kernelpop.log"
 log() {
-    local msg="[mainline-kernel-installer] $*"
+    local msg="[kernelpop] $*"
     echo "$msg"
     echo "$(date '+%Y-%m-%d %H:%M:%S') $msg" >> "$LOGFILE" 2>/dev/null || true
 }

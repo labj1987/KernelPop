@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# build-appimage.sh — build the Mainline Kernel Installer AppImage.
+# build-appimage.sh — build the KernelPop AppImage.
 # Run from the repo root on Ubuntu (CI uses ubuntu-latest). Run as root in CI.
 set -euo pipefail
 
-APP="mainline-kernel-installer"
+APP="kernelpop"
 # Single source of truth: the version in Cargo.toml
 VERSION="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
 ARCH="x86_64"
@@ -38,17 +38,17 @@ mkdir -p "$APPDIR/usr/bin" \
          "$APPDIR/usr/share/polkit-1/actions" \
          "$APPDIR/usr/share/metainfo"
 
-cp "target/release/$APP"                    "$APPDIR/usr/bin/"
-cp scripts/privileged-install.sh            "$APPDIR/usr/lib/$APP/"
+cp "target/release/$APP"                           "$APPDIR/usr/bin/"
+cp scripts/privileged-install.sh                   "$APPDIR/usr/lib/$APP/"
 chmod 755 "$APPDIR/usr/lib/$APP/privileged-install.sh"
-cp data/$APP.desktop                        "$APPDIR/usr/share/applications/"
-cp data/$APP.png                            "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
-cp data/io.github.labj1987.MKI.policy       "$APPDIR/usr/share/polkit-1/actions/"
-cp data/io.github.labj1987.MKI.appdata.xml  "$APPDIR/usr/share/metainfo/"
+cp data/$APP.desktop                                "$APPDIR/usr/share/applications/"
+cp data/$APP-256.png                                "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP.png"
+cp data/io.github.labj1987.KernelPop.policy         "$APPDIR/usr/share/polkit-1/actions/"
+cp data/io.github.labj1987.KernelPop.appdata.xml    "$APPDIR/usr/share/metainfo/"
 
 # Top-level AppImage requirements
 cp data/$APP.desktop "$APPDIR/"
-cp data/$APP.png     "$APPDIR/"
+cp data/$APP-256.png "$APPDIR/$APP.png"
 
 # ── AppRun ────────────────────────────────────────────────────────────
 # On first launch the privileged script and polkit policy must exist at
@@ -57,12 +57,12 @@ cp data/$APP.png     "$APPDIR/"
 cat > "$APPDIR/AppRun" << 'APPRUN'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
-APP="mainline-kernel-installer"
+APP="kernelpop"
 
 SRC_SCRIPT="$HERE/usr/lib/$APP/privileged-install.sh"
-SRC_POLICY="$HERE/usr/share/polkit-1/actions/io.github.labj1987.MKI.policy"
+SRC_POLICY="$HERE/usr/share/polkit-1/actions/io.github.labj1987.KernelPop.policy"
 DST_SCRIPT="/usr/lib/$APP/privileged-install.sh"
-DST_POLICY="/usr/share/polkit-1/actions/io.github.labj1987.MKI.policy"
+DST_POLICY="/usr/share/polkit-1/actions/io.github.labj1987.KernelPop.policy"
 
 needs_install=0
 if [[ ! -f "$DST_SCRIPT" ]] || ! cmp -s "$SRC_SCRIPT" "$DST_SCRIPT"; then
@@ -97,7 +97,9 @@ fi
 echo "==> Packing AppImage"
 OUT="$APP-$VERSION-$ARCH.AppImage"
 
-UPDATE_INFORMATION="gh-releases-zsync|labj1987|MKI|latest|mainline-kernel-installer-*-x86_64.AppImage.zsync"
+# Repo field stays "MKI" until/unless the GitHub repo itself is renamed —
+# the update spec resolves releases through the repo name.
+UPDATE_INFORMATION="gh-releases-zsync|labj1987|MKI|latest|kernelpop-*-x86_64.AppImage.zsync"
 VERSION="$VERSION" ARCH="$ARCH" "$TOOL" --appimage-extract-and-run \
     -u "$UPDATE_INFORMATION" "$APPDIR" "$OUT"
 

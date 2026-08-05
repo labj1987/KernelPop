@@ -1,4 +1,4 @@
-# MKI — Mainline Kernel Installer
+# KernelPop (formerly MKI / Mainline Kernel Installer)
 
 GTK4 + libadwaita GUI, written in Rust, for browsing and installing Ubuntu
 mainline kernels from kernel.ubuntu.com. Distributed as a single AppImage.
@@ -31,7 +31,7 @@ boot is flagged *before* the reboot, not after.
 3. Assembles the AppDir (binary, privileged script, polkit policy,
    desktop file, icon, appdata).
 4. Downloads `appimagetool` (continuous build) and packs the AppDir into
-   `mainline-kernel-installer-$VERSION-x86_64.AppImage`, with
+   `kernelpop-$VERSION-x86_64.AppImage`, with
    `UPDATE_INFORMATION` set for `gh-releases-zsync` delta updates.
 5. Runs `zsyncmake` directly on the built AppImage to produce the
    `.zsync` sidecar.
@@ -69,6 +69,7 @@ machine.
 - Don't use `sed`/`awk` to edit files — use direct file writes/edits.
   `tee` is fine for one-off terminal inspection, but Claude Code sessions
   should edit files directly rather than shelling through it.
-- Repo lives at `/home/alex/MKI`, owned by user `alex` — if operating as
-  root, run git commands as `alex` (`su -s /bin/bash alex -c '...'`) to
-  keep authorship and file ownership correct.
+- Repo lives at `/home/alex/Projects/MKI`, owned by user `alex` — if
+  operating as root, run git commands as `alex`
+  (`su -s /bin/bash alex -c '...'`) to keep authorship and file
+  ownership correct.

@@ -27,7 +27,7 @@ fn client() -> Result<reqwest::Client> {
     // a total timeout would kill a slow-but-healthy download; read_timeout
     // only fires when the stream actually stalls.
     Ok(reqwest::Client::builder()
-        .user_agent(concat!("mainline-kernel-installer/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("kernelpop/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(std::time::Duration::from_secs(30))
         .read_timeout(std::time::Duration::from_secs(60))
         .build()?)

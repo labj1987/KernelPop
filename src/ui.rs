@@ -68,7 +68,7 @@ pub fn build_ui(app: &Application) {
 
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("Mainline Kernel Installer")
+        .title("KernelPop")
         .default_width(780)
         .default_height(660)
         .build();
@@ -890,7 +890,7 @@ pub fn build_ui(app: &Application) {
                 (s.sysinfo.running_kernel.clone(), s.sysinfo.kernels.len())
             };
             let dialog = AboutDialog::builder()
-                .application_name("Mainline Kernel Installer")
+                .application_name("KernelPop")
                 .version(env!("CARGO_PKG_VERSION"))
                 .developers(vec!["Linnard Alex Brown Jr."])
                 .comments(format!(

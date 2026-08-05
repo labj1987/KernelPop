@@ -1,12 +1,12 @@
 [package]
-name = "mainline-kernel-installer"
+name = "kernelpop"
 version = "1.0.12"
 edition = "2021"
-description = "Mainline Kernel Installer — GTK4 GUI for Ubuntu mainline kernels"
+description = "KernelPop — GTK4 GUI for installing Ubuntu mainline kernels"
 authors = ["Alex Brown"]
 
 [[bin]]
-name = "mainline-kernel-installer"
+name = "kernelpop"
 path = "src/main.rs"
 
 [dependencies]

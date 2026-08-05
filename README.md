@@ -1,7 +1,8 @@
-# Mainline Kernel Installer (MKI)
+# KernelPop
 
 GTK4 + libadwaita desktop app for installing Ubuntu mainline kernels from
-kernel.ubuntu.com, written in Rust. Distributed as an AppImage.
+kernel.ubuntu.com, written in Rust. Distributed as an AppImage. (Formerly
+known as MKI / Mainline Kernel Installer.)
 
 ## Why this exists
 
@@ -28,14 +29,14 @@ on boot. This app is built around not letting that happen:
 - Per-file download progress with retries and cancellation
 - Remove old kernels (running kernel is never removable)
 - Disk space checks for /boot and /
-- Install log in-app plus /var/log/mainline-kernel-installer.log
+- Install log in-app plus /var/log/kernelpop.log
 
 ## Install
 
 Download the AppImage from the Releases page:
 
-    chmod +x mainline-kernel-installer-*-x86_64.AppImage
-    ./mainline-kernel-installer-*-x86_64.AppImage
+    chmod +x kernelpop-*-x86_64.AppImage
+    ./kernelpop-*-x86_64.AppImage
 
 First launch asks for authentication once to install the privileged
 helper script and polkit policy to system paths.
