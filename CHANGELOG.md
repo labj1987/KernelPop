@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 — 2026-08-05
+
+- Fixes the AppImage's self-update pointer, which still referenced the
+  pre-rename `MKI` repo — it now points at `KernelPop`, matching where
+  the 1.1.0 release actually lives.
+
 ## 1.1.0 — Rebrand to KernelPop, new icon set
 
 MKI is now KernelPop. Full rename — crate/package name, application ID
