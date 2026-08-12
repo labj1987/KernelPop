@@ -10,10 +10,14 @@ pub const MAINLINE_BASE: &str = "https://kernel.ubuntu.com/mainline/";
 
 #[derive(Debug, Clone)]
 pub struct KernelVersion {
-    /// e.g. "7.1.3"
+    /// e.g. "7.1.3", or "7.2-rc1" when `is_rc`
     pub version: String,
     /// e.g. "https://kernel.ubuntu.com/mainline/v7.1.3/"
     pub url: String,
+    /// True for `-rcN` directories. Filtered out of the Browse list by
+    /// default — see the RC toggle in ui.rs — since these are pre-release
+    /// and not what most users installing a mainline kernel want.
+    pub is_rc: bool,
 }
 
 /// One .deb belonging to a kernel version.
@@ -46,25 +50,43 @@ pub async fn fetch_versions() -> Result<Vec<KernelVersion>> {
 
     let document = Html::parse_document(&html);
     let selector = Selector::parse("a[href]").unwrap();
-    // Directories look like "v7.1.3/"; skip v7.2-rc1/, daily/, etc.
+    // Stable directories look like "v7.1.3/"; daily builds etc. are skipped
+    // by not matching either pattern below.
     let ver_re = Regex::new(r"^v(\d+\.\d+(?:\.\d+)?)/$").unwrap();
+    // Release-candidate directories look like "v7.2-rc1/". Captured
+    // separately and tagged `is_rc` — see the RC toggle in ui.rs — rather
+    // than skipped outright, since there's now a way to opt into seeing them.
+    let rc_re = Regex::new(r"^v(\d+\.\d+(?:\.\d+)?-rc\d+)/$").unwrap();
 
     let mut versions: Vec<KernelVersion> = document
         .select(&selector)
         .filter_map(|el| {
             let href = el.value().attr("href")?;
-            let caps = ver_re.captures(href)?;
+            if let Some(caps) = ver_re.captures(href) {
+                let version = caps[1].to_string();
+                let url = format!("{}v{}/", MAINLINE_BASE, version);
+                return Some(KernelVersion { version, url, is_rc: false });
+            }
+            let caps = rc_re.captures(href)?;
             let version = caps[1].to_string();
             let url = format!("{}v{}/", MAINLINE_BASE, version);
-            Some(KernelVersion { version, url })
+            Some(KernelVersion { version, url, is_rc: true })
         })
         .collect();
 
-    versions.sort_by(|a, b| {
-        let av: Vec<u32> = a.version.split('.').filter_map(|s| s.parse().ok()).collect();
-        let bv: Vec<u32> = b.version.split('.').filter_map(|s| s.parse().ok()).collect();
-        bv.cmp(&av)
-    });
+    // Sort on the leading dotted-numeric part only — an RC's "-rcN" suffix
+    // isn't parseable as a version component, and would otherwise sort that
+    // entry as if every part after the first dot were 0.
+    let sort_key = |v: &KernelVersion| -> Vec<u32> {
+        v.version
+            .chars()
+            .take_while(|c| c.is_ascii_digit() || *c == '.')
+            .collect::<String>()
+            .split('.')
+            .filter_map(|s| s.parse().ok())
+            .collect()
+    };
+    versions.sort_by(|a, b| sort_key(b).cmp(&sort_key(a)));
     versions.dedup_by(|a, b| a.version == b.version);
 
     if versions.is_empty() {
@@ -184,4 +206,29 @@ pub async fn fetch_deb_list(ver: &KernelVersion) -> Result<Vec<KernelDeb>> {
     }
     debs.sort_by(|a, b| a.filename.cmp(&b.filename));
     Ok(debs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    #[ignore]
+    async fn live_fetch_includes_rc_entries_with_working_deb_layout() {
+        let versions = fetch_versions().await.expect("live fetch failed");
+        assert!(!versions.is_empty());
+        let stable = versions.iter().filter(|v| !v.is_rc).count();
+        let rcs: Vec<_> = versions.iter().filter(|v| v.is_rc).collect();
+        println!("stable: {stable}, rc: {}", rcs.len());
+        assert!(stable > 0);
+        assert!(!rcs.is_empty(), "expected at least one -rcN directory live");
+        for rc in rcs.iter().take(1) {
+            println!("checking RC {} deb layout at {}", rc.version, rc.url);
+            let debs = fetch_deb_list(rc).await.expect("RC deb layout differs from stable");
+            assert!(!debs.is_empty());
+            for d in &debs {
+                println!("  {} (sha256: {})", d.filename, d.sha256.is_some());
+            }
+        }
+    }
 }
