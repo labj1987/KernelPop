@@ -122,16 +122,18 @@ pub enum VersionRelation { Newer, Same, Older, Unknown }
 
 pub fn compare_to_running(running: &str, candidate: &str) -> VersionRelation {
     // Running looks like "7.1.3-070103-generic" or "7.0.0-27-generic";
-    // the leading dotted part is what's comparable.
-    let head: String = running
-        .chars()
-        .take_while(|c| c.is_ascii_digit() || *c == '.')
-        .collect();
+    // candidate may be a plain "7.1.3" or an RC like "7.2-rc1" — either way
+    // the leading dotted-numeric part is what's comparable.
+    let head = |s: &str| -> String {
+        s.chars()
+            .take_while(|c| c.is_ascii_digit() || *c == '.')
+            .collect()
+    };
     let parse = |s: &str| -> Vec<u32> {
         s.split('.').filter_map(|x| x.parse().ok()).collect()
     };
-    let mut rv = parse(&head);
-    let mut cv = parse(candidate);
+    let mut rv = parse(&head(running));
+    let mut cv = parse(&head(candidate));
     if rv.is_empty() || cv.is_empty() {
         return VersionRelation::Unknown;
     }

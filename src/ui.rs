@@ -9,7 +9,7 @@ use crate::versions::{fetch_deb_list, fetch_versions, KernelVersion};
 use gtk4::prelude::*;
 use gtk4::{
     Align, Box as GtkBox, Button, Label, ListBox, Orientation, ProgressBar,
-    ScrolledWindow, SelectionMode, Spinner, Stack, TextView, WrapMode,
+    ScrolledWindow, SelectionMode, Spinner, Stack, Switch, TextView, WrapMode,
 };
 use libadwaita::prelude::*;
 use libadwaita::{
@@ -36,6 +36,8 @@ struct AppState {
     staged_files: Vec<(String, bool)>, // (filename, checksum_verified)
     sysinfo: SystemInfo,
     download_cancel: Option<Arc<std::sync::atomic::AtomicBool>>,
+    /// RC-visibility toggle on the Browse tab. Off by default.
+    show_rc: bool,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,6 +107,12 @@ pub fn build_ui(app: &Application) {
     sysinfo_page.set_margin_start(12);
     sysinfo_page.set_margin_end(12);
 
+    // "Newer kernel available" banner — populated by a background mainline
+    // fetch after the (local, fast) system query renders; see load_sysinfo.
+    let update_banner = Banner::new("");
+    update_banner.set_revealed(false);
+    sysinfo_page.append(&update_banner);
+
     let running_group = PreferencesGroup::builder().title("Running Kernel").build();
     let running_row = ActionRow::builder().title("Detecting…").build();
     running_group.add(&running_row);
@@ -154,6 +162,20 @@ pub fn build_ui(app: &Application) {
     search_bar.set_show_close_button(false);
     search_bar.set_search_mode(true);
     browse_page.append(&search_bar);
+
+    let rc_toggle_row = GtkBox::new(Orientation::Horizontal, 8);
+    rc_toggle_row.set_margin_start(12);
+    rc_toggle_row.set_margin_end(12);
+    rc_toggle_row.set_margin_bottom(4);
+    rc_toggle_row.set_halign(Align::End);
+    let rc_toggle_label = Label::new(Some("Show release candidates"));
+    rc_toggle_label.add_css_class("dim-label");
+    let rc_toggle = Switch::new();
+    rc_toggle.set_active(false);
+    rc_toggle.set_valign(Align::Center);
+    rc_toggle_row.append(&rc_toggle_label);
+    rc_toggle_row.append(&rc_toggle);
+    browse_page.append(&rc_toggle_row);
 
     let list_box = ListBox::new();
     list_box.set_selection_mode(SelectionMode::Single);
@@ -357,6 +379,7 @@ pub fn build_ui(app: &Application) {
         let boot_row = boot_row.clone();
         let root_row = root_row.clone();
         let health_banner = health_banner.clone();
+        let update_banner = update_banner.clone();
         let state = state.clone();
         let update_install_tab = update_install_tab.clone();
         let log_fn = log_fn.clone();
@@ -379,6 +402,7 @@ pub fn build_ui(app: &Application) {
             let boot_row = boot_row.clone();
             let root_row = root_row.clone();
             let health_banner = health_banner.clone();
+            let update_banner = update_banner.clone();
             let state = state.clone();
             let update_install_tab = update_install_tab.clone();
             let log_fn = log_fn.clone();
@@ -512,8 +536,36 @@ pub fn build_ui(app: &Application) {
                         "Running kernel: {} · {} kernels installed",
                         info.running_kernel, info.kernels.len()
                     ));
+                    let running_kernel = info.running_kernel.clone();
                     state.borrow_mut().sysinfo = info;
                     update_install_tab();
+
+                    // Nice-to-have, not safety-critical: check for a newer
+                    // mainline kernel over the network without blocking the
+                    // System tab's (local, fast) render above. A failed
+                    // fetch is silent — same Browse-tab data source, just
+                    // fire-and-forget here.
+                    update_banner.set_revealed(false);
+                    spawn_async(fetch_versions(), move |result| {
+                        let versions = match result {
+                            Ok(v) => v,
+                            Err(_e) => {
+                                #[cfg(debug_assertions)]
+                                eprintln!("update-check: fetch_versions failed: {_e}");
+                                return;
+                            }
+                        };
+                        let newest_stable = versions.iter().find(|v| !v.is_rc);
+                        if let Some(newest) = newest_stable {
+                            if compare_to_running(&running_kernel, &newest.version) == VersionRelation::Newer {
+                                update_banner.set_title(&format!(
+                                    "Kernel {} is available — see Browse tab to install",
+                                    newest.version
+                                ));
+                                update_banner.set_revealed(true);
+                            }
+                        }
+                    });
                 },
             );
         });
@@ -531,11 +583,18 @@ pub fn build_ui(app: &Application) {
     // ─────────────────────────────────────────────────────────────────────────
     //  Populate browse list — badges relative to the running kernel
     // ─────────────────────────────────────────────────────────────────────────
-    fn populate_list(list_box: &ListBox, versions: &[KernelVersion], filter: &str, running: &str) {
+    fn populate_list(
+        list_box: &ListBox,
+        versions: &[KernelVersion],
+        filter: &str,
+        running: &str,
+        show_rc: bool,
+    ) {
         while let Some(c) = list_box.first_child() { list_box.remove(&c); }
         let filter = filter.to_lowercase();
 
         for ver in versions {
+            if ver.is_rc && !show_rc { continue; }
             if !filter.is_empty() && !ver.version.contains(&filter) { continue; }
 
             let subtitle = match compare_to_running(running, &ver.version) {
@@ -554,6 +613,16 @@ pub fn build_ui(app: &Application) {
             if compare_to_running(running, &ver.version) == VersionRelation::Same {
                 row.add_css_class("success");
             }
+
+            if ver.is_rc {
+                let badge = Label::new(Some("RC"));
+                badge.add_css_class("caption");
+                badge.add_css_class("pill");
+                badge.add_css_class("warning");
+                badge.set_valign(Align::Center);
+                row.add_suffix(&badge);
+            }
+
             list_box.append(&row);
         }
     }
@@ -599,10 +668,18 @@ pub fn build_ui(app: &Application) {
                         selected_label.set_label("Could not load version list");
                     }
                     Ok(versions) => {
-                        log_fn(format!("Found {} stable versions", versions.len()));
+                        let rc_count = versions.iter().filter(|v| v.is_rc).count();
+                        log_fn(format!(
+                            "Found {} stable versions, {} release candidates",
+                            versions.len() - rc_count,
+                            rc_count
+                        ));
                         state.borrow_mut().versions = versions.clone();
-                        let running = state.borrow().sysinfo.running_kernel.clone();
-                        populate_list(&list_box, &versions, &search_entry.text(), &running);
+                        let (running, show_rc) = {
+                            let s = state.borrow();
+                            (s.sysinfo.running_kernel.clone(), s.show_rc)
+                        };
+                        populate_list(&list_box, &versions, &search_entry.text(), &running, show_rc);
                         selected_label.set_label("No version selected");
                     }
                 }
@@ -651,7 +728,19 @@ pub fn build_ui(app: &Application) {
         let state = state.clone();
         search_entry.connect_search_changed(move |entry| {
             let s = state.borrow();
-            populate_list(&list_box, &s.versions, &entry.text(), &s.sysinfo.running_kernel);
+            populate_list(&list_box, &s.versions, &entry.text(), &s.sysinfo.running_kernel, s.show_rc);
+        });
+    }
+
+    {
+        let list_box = list_box.clone();
+        let state = state.clone();
+        let search_entry = search_entry.clone();
+        rc_toggle.connect_state_set(move |_, active| {
+            state.borrow_mut().show_rc = active;
+            let s = state.borrow();
+            populate_list(&list_box, &s.versions, &search_entry.text(), &s.sysinfo.running_kernel, active);
+            glib::Propagation::Proceed
         });
     }
 
