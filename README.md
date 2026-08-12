@@ -25,6 +25,8 @@ on boot. This app is built around not letting that happen:
 
 - Browse stable mainline versions with newer/same/older badges relative
   to the running kernel
+- A banner on the System tab when a newer mainline kernel is available
+- Optional release-candidate visibility on the Browse tab (off by default)
 - SHA256 verification against the published CHECKSUMS file
 - Per-file download progress with retries and cancellation
 - Remove old kernels (running kernel is never removable)
@@ -53,11 +55,11 @@ helper script and polkit policy to system paths.
 
 ## Screenshots
 
-**System** — every installed kernel with initrd/modules health checks, a running badge, and disk space
+**System** — every installed kernel with initrd/modules health checks, a running badge, disk space, and a banner when a newer mainline kernel is available (hidden here since the running kernel is already current)
 
 ![System tab](docs/screenshots/system-tab.png)
 
-**Browse** — mainline versions badged against the running kernel
+**Browse** — mainline versions badged against the running kernel, with an off-by-default toggle to show release candidates
 
 ![Browse tab](docs/screenshots/browse-tab.png)
 
