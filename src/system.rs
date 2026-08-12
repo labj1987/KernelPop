@@ -116,7 +116,7 @@ pub fn format_bytes(b: u64) -> String {
 
 /// Compare the running kernel's numeric part against a mainline version
 /// string like "7.1.3". Returns Newer/Same/Older from the candidate's
-/// point of view, mirroring NVI's badge logic.
+/// point of view, mirroring GreenLight's badge logic.
 #[derive(PartialEq)]
 pub enum VersionRelation { Newer, Same, Older, Unknown }
 
