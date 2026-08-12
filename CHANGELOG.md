@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 — 2026-08-12
+
+- The System tab now shows a banner when a newer mainline kernel is
+  available than the one currently running, checked in the background
+  against the same version list the Browse tab uses. No banner when
+  already current; a failed check fails silently.
+- Browse tab gets an off-by-default toggle to show release-candidate
+  (`-rcN`) kernel versions, badged distinctly from stable releases. The
+  existing download/verify/install path — including the safety checks
+  that never touch the running kernel — works unmodified for RCs.
+- Dependency bump: gtk4 0.11, libadwaita 0.9, glib/gio 0.22, reqwest 0.13,
+  scraper 0.27, matching GreenLight's target versions.
+- AppStream metadata: added `developer`, `url`, and `content_rating` tags.
+
 ## 1.1.1 — 2026-08-05
 
 - Fixes the AppImage's self-update pointer, which still referenced the
