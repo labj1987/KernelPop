@@ -21,20 +21,83 @@ pub struct InstalledKernel {
     pub version: String,
     pub has_initrd: bool,
     pub has_modules: bool,
+    /// Whether the active boot loader actually has a menu entry for this
+    /// kernel. Always true on GRUB (grub-mkconfig picks up anything with a
+    /// vmlinuz in /boot on its own); on systemd-boot this checks for a real
+    /// entry under the ESP, since nothing else guarantees one exists.
+    pub has_boot_entry: bool,
     pub running: bool,
 }
 
 impl InstalledKernel {
-    /// A kernel is bootable when its initrd and modules are both in place.
+    /// A kernel is bootable when its initrd, modules, and boot menu entry
+    /// are all in place.
     pub fn healthy(&self) -> bool {
-        self.has_initrd && self.has_modules
+        self.has_initrd && self.has_modules && self.has_boot_entry
+    }
+}
+
+/// Which boot loader actually controls this machine's boot menu, detected
+/// the same way privileged-install.sh does. GRUB and systemd-boot binaries
+/// can both be present on a system (leftover packages, dual setups) — the
+/// signal that matters is which one an ESP loader.conf says is active,
+/// not merely which binaries exist.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Bootloader {
+    Grub,
+    SystemdBoot { esp: String },
+    Unknown,
+}
+
+pub fn detect_bootloader() -> Bootloader {
+    if Path::new("/sys/firmware/efi").exists() {
+        if let Ok(out) = Command::new("bootctl").arg("--print-esp-path").output() {
+            if out.status.success() {
+                let esp = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !esp.is_empty() && Path::new(&format!("{esp}/loader/loader.conf")).exists() {
+                    return Bootloader::SystemdBoot { esp };
+                }
+            }
+        }
+    }
+    let has_update_grub = Command::new("sh")
+        .args(["-c", "command -v update-grub"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+    if has_update_grub {
+        return Bootloader::Grub;
+    }
+    Bootloader::Unknown
+}
+
+/// Whether the boot loader has a menu entry for this exact kernel version.
+/// Unknown boot loaders are given the benefit of the doubt (true) rather
+/// than marking every kernel unhealthy for a check we can't perform.
+fn has_boot_entry(version: &str, bootloader: &Bootloader) -> bool {
+    match bootloader {
+        Bootloader::Grub | Bootloader::Unknown => true,
+        Bootloader::SystemdBoot { esp } => {
+            let entries_dir = format!("{esp}/loader/entries");
+            std::fs::read_dir(&entries_dir)
+                .map(|entries| {
+                    entries.flatten().any(|e| {
+                        e.file_name()
+                            .to_str()
+                            .map(|n| n.ends_with(&format!("-{version}.conf")))
+                            .unwrap_or(false)
+                    })
+                })
+                .unwrap_or(false)
+        }
     }
 }
 
 pub fn query_system() -> SystemInfo {
     let running_kernel = get_running_kernel();
+    let bootloader = detect_bootloader();
     SystemInfo {
-        kernels: get_installed_kernels(&running_kernel),
+        kernels: get_installed_kernels(&running_kernel, &bootloader),
         running_kernel,
         free_boot_bytes: get_free_disk("/boot"),
         free_root_bytes: get_free_disk("/"),
@@ -52,7 +115,7 @@ fn get_running_kernel() -> String {
 
 /// Every vmlinuz-* in /boot, with initrd and modules presence checks.
 /// Sorted newest-looking first, with the running kernel pinned to the top.
-fn get_installed_kernels(running: &str) -> Vec<InstalledKernel> {
+fn get_installed_kernels(running: &str, bootloader: &Bootloader) -> Vec<InstalledKernel> {
     let mut kernels = vec![];
 
     let Ok(entries) = std::fs::read_dir("/boot") else { return kernels };
@@ -68,6 +131,7 @@ fn get_installed_kernels(running: &str) -> Vec<InstalledKernel> {
             version: version.to_string(),
             has_initrd,
             has_modules,
+            has_boot_entry: has_boot_entry(version, bootloader),
             running: version == running,
         });
     }

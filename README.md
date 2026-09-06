@@ -18,8 +18,10 @@ on boot. This app is built around not letting that happen:
 - The initramfs is generated and then VERIFIED to exist in /boot before
   the install reports success. A missing initrd fails the install loudly.
 - The System tab health-checks every installed kernel for a missing
-  initrd or modules directory, so a broken kernel is visible before a
-  reboot instead of after.
+  initrd, modules directory, or boot menu entry, so a broken kernel is
+  visible before a reboot instead of after.
+- Works with both GRUB and systemd-boot, detecting whichever one is
+  actually active on the machine.
 
 ## Features
 

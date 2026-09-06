@@ -34,7 +34,8 @@ fn run_script(args: &[String]) -> Result<()> {
 
 /// Install a downloaded .deb set. The script derives the kernel version
 /// from the package metadata (never from filenames), generates the
-/// initramfs, verifies it exists, and updates GRUB.
+/// initramfs, verifies it exists, and updates the boot loader (GRUB or
+/// systemd-boot, whichever the machine actually uses).
 pub fn run_privileged_install(deb_dir: &str) -> Result<()> {
     if !Path::new(deb_dir).is_dir() {
         bail!("Download directory not found: {}", deb_dir);
