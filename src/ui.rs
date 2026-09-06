@@ -239,8 +239,8 @@ pub fn build_ui(app: &Application) {
 
     let steps_group = PreferencesGroup::builder().title("Install Will").build();
     let step_row = ActionRow::builder()
-        .title("dpkg install, then generate and VERIFY the initramfs, then update GRUB")
-        .subtitle("The install fails loudly if initrd.img does not appear in /boot — no silent unbootable kernels")
+        .title("dpkg install, then generate and VERIFY the initramfs, then update the boot loader")
+        .subtitle("The install fails loudly if initrd.img or the boot menu entry does not appear — no silent unbootable kernels")
         .build();
     steps_group.add(&step_row);
     install_page.append(&steps_group);
@@ -443,6 +443,8 @@ pub fn build_ui(app: &Application) {
                                             else { "INITRD MISSING".to_string() });
                         subtitle_parts.push(if k.has_modules { "modules ✓".to_string() }
                                             else { "modules missing".to_string() });
+                        subtitle_parts.push(if k.has_boot_entry { "boot menu ✓".to_string() }
+                                            else { "NOT IN BOOT MENU".to_string() });
 
                         let row = ActionRow::builder()
                             .title(&k.version)
@@ -470,7 +472,7 @@ pub fn build_ui(app: &Application) {
                             remove_btn.connect_clicked(move |_| {
                                 let dialog = AlertDialog::builder()
                                     .heading(&format!("Remove kernel {}?", ver))
-                                    .body("Its packages will be purged and GRUB updated. The running kernel is never touched.")
+                                    .body("Its packages will be purged and the boot loader updated. The running kernel is never touched.")
                                     .build();
                                 dialog.add_responses(&[("cancel", "Cancel"), ("remove", "Remove")]);
                                 dialog.set_response_appearance("remove", libadwaita::ResponseAppearance::Destructive);
@@ -529,7 +531,7 @@ pub fn build_ui(app: &Application) {
 
                     health_banner.set_revealed(any_unhealthy);
                     if any_unhealthy {
-                        log_fn("WARNING: at least one installed kernel is missing its initramfs".to_string());
+                        log_fn("WARNING: at least one installed kernel is missing its initramfs or boot menu entry".to_string());
                     }
 
                     log_fn(format!(

@@ -32,6 +32,27 @@ die() { log "ERROR: $*"; exit 1; }
 MODE="${1:-}"
 ARG="${2:-}"
 
+# ── Boot loader detection ───────────────────────────────────────────────
+# GRUB and systemd-boot binaries/config can both be present on a machine
+# (leftover packages, distro upgrades) — the signal that matters is which
+# one an ESP loader.conf says is actually active, not merely which
+# binaries exist. Prints one of: "systemd-boot <esp-path>" | "grub" | "unknown"
+detect_bootloader() {
+    if [[ -d /sys/firmware/efi ]] && command -v bootctl >/dev/null 2>&1; then
+        local esp
+        esp="$(bootctl --print-esp-path 2>/dev/null)" || esp=""
+        if [[ -n "$esp" && -f "$esp/loader/loader.conf" ]]; then
+            echo "systemd-boot $esp"
+            return
+        fi
+    fi
+    if command -v update-grub >/dev/null 2>&1; then
+        echo "grub"
+        return
+    fi
+    echo "unknown"
+}
+
 # ── Derive kernel version strings from .deb metadata ──────────────────
 # The image/modules package NAME embeds the full version string:
 #   linux-image-unsigned-7.1.3-070103-generic  ->  7.1.3-070103-generic
@@ -100,8 +121,29 @@ do_install() {
     [[ -f "/boot/initrd.img-$kver" ]] || die "initrd.img-$kver did NOT appear in /boot — DO NOT reboot into this kernel"
     log "Verified: /boot/initrd.img-$kver exists"
 
-    log "Updating GRUB…"
-    update-grub >>"$LOGFILE" 2>&1 || die "update-grub failed"
+    # ── Boot loader: verify (systemd-boot) or update (GRUB) ─────────────
+    local bl esp
+    read -r bl esp <<< "$(detect_bootloader)"
+    case "$bl" in
+        systemd-boot)
+            # kernel-install already ran automatically via the dpkg postinst
+            # hook (/usr/lib/kernel/install.d/90-loaderentry.install) — verify
+            # it actually produced an entry rather than trusting it happened,
+            # same philosophy as the initramfs check above.
+            log "systemd-boot detected (ESP: $esp) — verifying boot menu entry…"
+            local entry
+            entry="$(find "$esp/loader/entries" -name "*-${kver}.conf" 2>/dev/null | head -1)"
+            [[ -n "$entry" ]] || die "No systemd-boot entry appeared for $kver in $esp/loader/entries — DO NOT reboot expecting it in the menu"
+            log "Verified: boot menu entry $entry exists"
+            ;;
+        grub)
+            log "Updating GRUB…"
+            update-grub >>"$LOGFILE" 2>&1 || die "update-grub failed"
+            ;;
+        *)
+            log "WARNING: could not detect a supported boot loader (GRUB or systemd-boot). The kernel and initramfs are installed and verified, but you must confirm $kver appears in your boot menu yourself before rebooting."
+            ;;
+    esac
 
     log "==== Done. Kernel $kver installed with initramfs verified. Reboot when ready. ===="
 }
@@ -137,8 +179,34 @@ do_remove() {
         rm -rf "/lib/modules/$kver"
     fi
 
-    log "Updating GRUB…"
-    update-grub >>"$LOGFILE" 2>&1 || die "update-grub failed"
+    # ── Boot loader: clean up (systemd-boot) or update (GRUB) ───────────
+    # dpkg has no postrm hook that removes a systemd-boot entry (only
+    # zz-update-grub exists by default) — without this, every removed
+    # kernel on a systemd-boot machine leaves a permanently dangling,
+    # unbootable menu entry behind.
+    local bl esp
+    read -r bl esp <<< "$(detect_bootloader)"
+    case "$bl" in
+        systemd-boot)
+            log "systemd-boot detected (ESP: $esp) — removing boot menu entry for $kver…"
+            if command -v kernel-install >/dev/null 2>&1; then
+                kernel-install remove "$kver" >>"$LOGFILE" 2>&1 \
+                    || log "WARNING: kernel-install remove failed for $kver — its boot menu entry may be orphaned in $esp/loader/entries"
+            else
+                rm -f "$esp/loader/entries/"*"-${kver}.conf"
+                if [[ -r /etc/machine-id ]]; then
+                    rm -rf "$esp/$(cat /etc/machine-id)/$kver"
+                fi
+            fi
+            ;;
+        grub)
+            log "Updating GRUB…"
+            update-grub >>"$LOGFILE" 2>&1 || die "update-grub failed"
+            ;;
+        *)
+            log "WARNING: could not detect a supported boot loader (GRUB or systemd-boot). Kernel $kver's files were removed, but its boot menu entry (if any) may still be present — check your boot menu by hand."
+            ;;
+    esac
 
     log "==== Done. Kernel $kver removed. ===="
 }

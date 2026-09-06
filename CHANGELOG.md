@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0 — 2026-09-06
+
+- Adds systemd-boot support alongside GRUB. The privileged install/remove
+  script now detects which boot loader is actually active (an ESP
+  `loader.conf`, not just which binaries happen to be installed — GRUB
+  packages can be left over on a systemd-boot machine) and handles each
+  correctly:
+  - Install verifies the boot menu entry systemd-boot's `kernel-install`
+    hook creates automatically, failing loudly (same as the existing
+    initramfs check) if it doesn't appear — instead of blindly calling
+    `update-grub`, which does nothing on systemd-boot and would previously
+    either report false success or `die` on a machine with no GRUB
+    binary at all.
+  - Remove now cleans up the systemd-boot boot menu entry via
+    `kernel-install remove`. Previously, removing a kernel on a
+    systemd-boot system left its menu entry permanently orphaned, since
+    dpkg has no postrm hook for it — confirmed and fixed against a real
+    installed kernel on a systemd-boot machine.
+- The System tab's per-kernel health check gains a `boot menu` status
+  alongside `initrd`/`modules`, so a kernel missing its boot loader entry
+  shows as unhealthy before a reboot, not after.
+
 ## 1.2.1 — 2026-08-12
 
 - Fixes the 1.2.0 release build, which failed in CI: its gtk4/libadwaita
