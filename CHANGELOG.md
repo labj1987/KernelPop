@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1 — 2026-09-09
+
+- Credits Claude Code (Anthropic) in the About dialog's acknowledgements.
+
 ## 1.3.0 — 2026-09-06
 
 - Adds systemd-boot support alongside GRUB. The privileged install/remove
