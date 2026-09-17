@@ -91,4 +91,8 @@ Or build the AppImage the same way CI does:
 
 ## License
 
-MIT
+AGPL-3.0-or-later — see [LICENSE](LICENSE).
+
+Code at or before commit `8cb172eb68a8ed7c417ae0f04c4b2adaae858c34` remains available
+under the MIT License per its original release. From this commit forward,
+AGPL-3.0-or-later.
