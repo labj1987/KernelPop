@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.2 — 2026-09-17
+
+- Fixes the install script updating GRUB but not the actual boot default
+  on `GRUB_DEFAULT=saved` systems (curtin/autoinstall images set this up
+  by default). `update-grub` regenerates `grub.cfg` with a correct entry
+  for the new kernel, but the saved default stays pinned to whatever was
+  last selected — so the new kernel installs and verifies cleanly, and the
+  machine still reboots into the old one, silently, especially with
+  `GRUB_TIMEOUT_STYLE=hidden` where there's no visible menu to notice the
+  stale selection from. Confirmed against a real install. The script now
+  detects `GRUB_DEFAULT=saved`, reads the new kernel's actual menu entry
+  ID out of the generated `grub.cfg` (never guessed or constructed — grub's
+  entry IDs are random per-machine UUIDs unrelated to `/etc/machine-id`),
+  points `grub-set-default` at it, and verifies the saved default actually
+  changed before reporting success.
+
 ## 1.3.1 — 2026-09-09
 
 - Credits Claude Code (Anthropic) in the About dialog's acknowledgements.

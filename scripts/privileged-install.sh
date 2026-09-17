@@ -53,6 +53,27 @@ detect_bootloader() {
     echo "unknown"
 }
 
+# ── Find a kernel's GRUB menu entry path from the generated grub.cfg ────
+# Entry IDs (menuentry_id_option) are per-machine random UUIDs baked in by
+# grub-mkconfig — never /etc/machine-id, and never guessable — so they must
+# be read out of the actual config, not constructed. Prints
+# "<submenu-id>><entry-id>" for use with grub-set-default, or nothing if no
+# match was found.
+grub_entry_path_for_kver() {
+    local kver="$1" cfg="/boot/grub/grub.cfg"
+    [[ -f "$cfg" ]] || return 1
+
+    local submenu_id entry_id
+    submenu_id="$(grep -oP "submenu '[^']*' \\\$menuentry_id_option '\\K[^']+" "$cfg" | head -1)"
+    # Excludes recovery-mode entries, which also contain $kver in their
+    # title — the default must never land on one of those.
+    entry_id="$(grep "menuentry '[^']*${kver}[^']*'" "$cfg" 2>/dev/null \
+        | grep -v 'recovery mode' \
+        | grep -oP "\\\$menuentry_id_option '\\K[^']+" | head -1)"
+    [[ -n "$submenu_id" && -n "$entry_id" ]] || return 1
+    echo "${submenu_id}>${entry_id}"
+}
+
 # ── Derive kernel version strings from .deb metadata ──────────────────
 # The image/modules package NAME embeds the full version string:
 #   linux-image-unsigned-7.1.3-070103-generic  ->  7.1.3-070103-generic
@@ -139,6 +160,35 @@ do_install() {
         grub)
             log "Updating GRUB…"
             update-grub >>"$LOGFILE" 2>&1 || die "update-grub failed"
+
+            # On GRUB_DEFAULT=saved systems (curtin/autoinstall images set
+            # this up by default) the saved default stays pinned to whatever
+            # was last selected — regenerating grub.cfg does NOT move it to
+            # the new kernel. Confirmed against a real install: the new
+            # kernel installs and verifies cleanly, update-grub lists it
+            # correctly, and the machine still reboots into the OLD kernel,
+            # silently — doubly so with GRUB_TIMEOUT_STYLE=hidden, where
+            # there's no visible menu to notice the stale selection from.
+            if grep -qE '^GRUB_DEFAULT=saved' /etc/default/grub 2>/dev/null; then
+                log "GRUB_DEFAULT=saved detected — pointing the saved default at $kver…"
+                local entry_path
+                entry_path="$(grub_entry_path_for_kver "$kver")"
+                if [[ -n "$entry_path" ]]; then
+                    if grub-set-default "$entry_path" >>"$LOGFILE" 2>&1; then
+                        local saved
+                        saved="$(grub-editenv list 2>/dev/null | sed -n 's/^saved_entry=//p')"
+                        if [[ "$saved" == "$entry_path" ]]; then
+                            log "Verified: saved_entry now points to $kver"
+                        else
+                            log "WARNING: saved_entry is '$saved' after grub-set-default, expected '$entry_path' — verify manually before rebooting"
+                        fi
+                    else
+                        log "WARNING: grub-set-default failed for $entry_path — $kver is installed but may not be the default boot entry"
+                    fi
+                else
+                    log "WARNING: could not find a GRUB menu entry for $kver in grub.cfg — saved default left unchanged, verify manually before rebooting"
+                fi
+            fi
             ;;
         *)
             log "WARNING: could not detect a supported boot loader (GRUB or systemd-boot). The kernel and initramfs are installed and verified, but you must confirm $kver appears in your boot menu yourself before rebooting."
